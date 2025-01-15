@@ -8,7 +8,7 @@ import * as proj from '@etalab/project-legal';
 import { Toponyme } from '@/shared/entities/toponyme.entity';
 import { Numero } from '@/shared/entities/numero.entity';
 import { Voie } from '@/shared/entities/voie.entity';
-import { getCommune } from '@/shared/utils/cog.utils';
+import { getCommune, getOldCommune } from '@/shared/utils/cog.utils';
 import { roundCoordinate } from '@/shared/utils/coor.utils';
 import { BaseLocale } from '@/shared/entities/base_locale.entity';
 
@@ -25,6 +25,7 @@ type BanIdsType = {
 type RowType = {
   banIds: BanIdsType;
   codeCommune: string;
+  communeDeleguee?: string;
   codeVoie: string;
   numero: number;
   suffixe?: string;
@@ -52,6 +53,8 @@ type CsvRowType = {
   certification_commune: string;
   commune_insee: string;
   commune_nom: string;
+  commune_deleguee_insee: string;
+  commune_deleguee_nom: string;
   position: string;
   long: string;
   lat: string;
@@ -121,6 +124,10 @@ function createRow(obj: RowType, withComment: boolean): CsvRowType {
     certification_commune: toCsvBoolean(obj.certifie),
     commune_insee: obj.codeCommune,
     commune_nom: getCommune(obj.codeCommune).nom,
+    commune_deleguee_insee: obj.communeDeleguee || null,
+    commune_deleguee_nom: obj.communeDeleguee
+      ? getOldCommune(obj.communeDeleguee).nom
+      : null,
     position: '',
     long: '',
     lat: '',
@@ -160,7 +167,6 @@ function createRow(obj: RowType, withComment: boolean): CsvRowType {
       row.y = projectedCoords[1].toString();
     }
   }
-
   return row;
 }
 
@@ -192,6 +198,7 @@ export async function exportBalToCsv(
       n.positions.forEach((p) => {
         rows.push({
           codeCommune: baseLocale.commune,
+          communeDeleguee: n.communeDeleguee,
           banIds: {
             commune: baseLocale.banId,
             toponyme: v.banId,
@@ -220,6 +227,7 @@ export async function exportBalToCsv(
       t.positions.forEach((p) => {
         rows.push({
           codeCommune: baseLocale.commune,
+          communeDeleguee: t.communeDeleguee,
           banIds: {
             commune: baseLocale.banId,
             toponyme: t.banId,
@@ -240,6 +248,7 @@ export async function exportBalToCsv(
           toponyme: t.banId,
         },
         codeCommune: baseLocale.commune,
+        communeDeleguee: t.communeDeleguee,
         codeVoie: DEFAULT_CODE_VOIE,
         numero: DEFAULT_NUMERO_TOPONYME,
         updatedAt: t.updatedAt,
@@ -249,7 +258,6 @@ export async function exportBalToCsv(
       });
     }
   });
-
   const csvRows: CsvRowType[] = rows.map((row) => createRow(row, withComment));
   const headers: string[] = extractHeaders(csvRows);
 
